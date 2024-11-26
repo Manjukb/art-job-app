@@ -1,0 +1,56 @@
+version: "2"
+services:
+  client:
+    build: client
+    image: webapp-client
+    restart: always
+    ports:
+      - 3000:3000
+    depends_on:
+      - server
+      - redis   # Ensure Redis is part of the dependencies
+    networks:
+      - webappnetwork
+    stdin_open: true
+    volumes:
+      - ./client:/app  # Mount your local client directory to the container
+      - /app/node_modules  # Prevent overwriting node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true  # For file watching in certain environments (especially on Docker)
+
+  server:
+    build: server
+    image: webapp-api
+    restart: always
+    ports:
+      - 9001:3000
+    depends_on:
+      - mongodb
+      - redis   # Ensure Redis is part of the dependencies
+    networks:
+      - webappnetwork
+
+  mongodb:
+    image: mongo
+    restart: always
+    container_name: mongodb
+    ports:
+      - 27017:27017
+    command: mongod --noauth
+    networks:
+      - webappnetwork
+    volumes:
+      - ./mongo/init:/docker-entrypoint-initdb.d
+
+  redis:
+    image: redis
+    restart: always
+    container_name: redis
+    ports:
+      - 6379:6379
+    networks:
+      - webappnetwork
+
+networks:
+  webappnetwork:
+    driver: bridge
